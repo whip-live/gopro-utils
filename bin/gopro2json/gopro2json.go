@@ -11,7 +11,7 @@ import (
 )
 
 type data struct {
-	Data []telemetry.TELEM_OUT `json:"data"`
+	Data []telemetry.TELEM_OUT `json:"points"`
 }
 
 func main() {

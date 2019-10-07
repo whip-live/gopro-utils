@@ -2,8 +2,6 @@ package telemetry
 
 import (
 	"time"
-
-	"github.com/paulmach/go.geo"
 )
 
 // Represents one second of telemetry data
@@ -22,13 +20,11 @@ type TELEM struct {
 type TELEM_OUT struct {
 	*GPS5
 
-	GpsAccuracy uint16  `json:"gps_accuracy,omitempty"`
-	GpsFix      uint32  `json:"gps_fix,omitempty"`
-	Temp        float32 `json:"temp,omitempty"`
-	Track       float64 `json:"track,omitempty"`
+    Accuracy    float32 `json:"accuracy"`
+    AltAccuracy float32 `json:"altitude_accuracy"`
+    Heading     float32 `json:"heading"`
 }
 
-var pp *geo.Point = geo.NewPoint(10, 10)
 var last_good_track float64 = 0
 
 // zeroes out the telem struct
@@ -55,7 +51,7 @@ func (t *TELEM) FillTimes(until time.Time) error {
 	for i, _ := range t.Gps {
 		dur := time.Duration(float64(i)*offset*1000) * time.Millisecond
 		ts := t.Time.Time.Add(dur)
-		t.Gps[i].TS = ts.UnixNano() / 1000
+		t.Gps[i].TS = ts
 	}
 
 	return nil
@@ -65,27 +61,11 @@ func (t *TELEM) ShitJson() []TELEM_OUT {
 	var out []TELEM_OUT
 
 	for i, _ := range t.Gps {
-		jobj := TELEM_OUT{&t.Gps[i], 0, 0, 0, 0}
+		jobj := TELEM_OUT{&t.Gps[i], 0, 0, 0}
 		if 0 == i {
-			jobj.GpsAccuracy = t.GpsAccuracy.Accuracy
-			jobj.GpsFix = t.GpsFix.F
-			jobj.Temp = t.Temp.Temp
-		}
-
-		p := geo.NewPoint(jobj.GPS5.Longitude, jobj.GPS5.Latitude)
-		jobj.Track = pp.BearingTo(p)
-		pp = p
-
-		if jobj.Track < 0 {
-			jobj.Track = 360 + jobj.Track
-		}
-
-		// only set the track if speed is over 1 m/s
-		// if it's slower (eg, stopped) it will drift all over with the location
-		if jobj.GPS5.Speed > 1 {
-			last_good_track = jobj.Track
-		} else {
-			jobj.Track = last_good_track
+			jobj.Accuracy = 1.5
+			jobj.AltAccuracy = 1.5
+			jobj.Heading = 0
 		}
 
 		out = append(out, jobj)
